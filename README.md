@@ -18,7 +18,7 @@ Ambiguous short tokens such as `shi`, `ma`, and `name` are intentionally left al
 
 像 `shi`、`ma`、`name` 这类短词或高歧义词会被故意保留不动。这样可以避免日常中文输入被过于积极的自动切换打断。🧠
 
-## Quick Start / 快速开始
+## Quick Start / 快速开始 🏃
 
 Build and launch the local menu-bar app after the first clone or after code changes:
 
@@ -70,43 +70,6 @@ Open the SmartKeyboard menu from the macOS menu bar. Keep `SmartKeyboard: On`, k
 
 从 macOS 菜单栏打开 SmartKeyboard 菜单。保持 `SmartKeyboard: On`，保持 `Buffered Mode: On`，在 `Chinese Source` 中选择你的拼音输入法，在 `English Source` 中选择 `ABC` 或你常用的英文键盘布局。
 
-Buffered Mode is the smoother mode: it removes the already typed letters, switches input sources, and replays the token. You can turn it off for a more conservative passive-switching behavior.
+**Buffered Mode** is the smoother mode: it removes the already typed letters, switches input sources, and replays the token. You can turn it off for a more conservative passive-switching behavior.
 
-Buffered Mode 是更顺滑的模式：它会删除已经打出的字母、切换输入源、再重放 token。如果你想使用更保守的被动切换，也可以在菜单里关闭它。
-
-## Verify / 验证
-
-Run the build, the dependency-free self test, and the classifier preview:
-
-可以运行构建、自带无依赖自测，以及分类器预览：
-
-```sh
-swift build
-swift run SmartKeyboardSelfTest
-swift run SmartKeyboardCLI
-swift test --enable-swift-testing --disable-xctest
-```
-
-`SmartKeyboardSelfTest` is the most reliable local verification path. On some Command Line Tools installations, `swift test` builds the Swift Testing bundle without printing a full execution report.
-
-`SmartKeyboardSelfTest` 是当前最可靠的本地验证方式。在某些 Command Line Tools 环境下，`swift test` 会构建 Swift Testing 测试包，但不会输出完整运行报告。
-
-## Project Layout / 项目结构
-
-`SmartKeyboardCore` contains intent classification, token state, preferences, and input-source management.
-
-`SmartKeyboardCore` 包含意图分类、token 状态机、偏好设置和输入源管理。
-
-`SmartKeyboardApp` contains the macOS menu-bar app, permission status, input-source switching, and buffered replay.
-
-`SmartKeyboardApp` 包含 macOS 菜单栏 app、权限状态、输入源切换和 buffered replay。
-
-`SmartKeyboardCLI` previews classifier decisions, and `SmartKeyboardSelfTest` provides a lightweight self-test entry point.
-
-`SmartKeyboardCLI` 用来预览分类器判断，`SmartKeyboardSelfTest` 提供轻量自测入口。
-
-## Safety Boundaries / 安全边界
-
-SmartKeyboard does not write to `~/Library/Input Methods`, does not write to `~/Library/Rime`, does not install a custom input source, and does not persist raw typed text.
-
-SmartKeyboard 不会写入 `~/Library/Input Methods`，不会写入 `~/Library/Rime`，不会安装自定义输入源，也不会持久化保存原始输入内容。
+**Buffered Mode** 是更顺滑的模式：它会删除已经打出的字母、切换输入源、再重放 token。如果你想使用更保守的被动切换，也可以在菜单里关闭它。
