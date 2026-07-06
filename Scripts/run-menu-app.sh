@@ -3,15 +3,9 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_NAME="SmartKeyboard"
-BUNDLE_ID="com.jjjiangfz.SmartKeyboard"
-SWIFT_BUILD_DIR="$ROOT_DIR/.build"
 BUNDLE_PRODUCTS_DIR="$ROOT_DIR/BuildProducts"
 BUNDLE_DIR="$BUNDLE_PRODUCTS_DIR/${APP_NAME}.app"
-CONTENTS_DIR="$BUNDLE_DIR/Contents"
-MACOS_DIR="$CONTENTS_DIR/MacOS"
-RESOURCES_DIR="$CONTENTS_DIR/Resources"
-EXECUTABLE="$MACOS_DIR/$APP_NAME"
-APP_ICON="$ROOT_DIR/Assets/AppIcon/SmartKeyboard.icns"
+EXECUTABLE="$BUNDLE_DIR/Contents/MacOS/$APP_NAME"
 REBUILD=0
 
 if [[ "${1:-}" == "--rebuild" ]]; then
@@ -21,59 +15,7 @@ fi
 cd "$ROOT_DIR"
 
 if [[ "$REBUILD" == "1" || ! -x "$EXECUTABLE" ]]; then
-  swift build --product SmartKeyboardApp
-
-  if [[ ! -f "$APP_ICON" ]]; then
-    echo "Missing app icon: $APP_ICON"
-    echo "Regenerate it with: swift Scripts/generate-app-icon.swift"
-    exit 1
-  fi
-
-  rm -rf "$BUNDLE_DIR"
-  mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
-  cp "$SWIFT_BUILD_DIR/arm64-apple-macosx/debug/SmartKeyboardApp" "$EXECUTABLE"
-  cp "$APP_ICON" "$RESOURCES_DIR/SmartKeyboard.icns"
-  chmod +x "$EXECUTABLE"
-
-  cat > "$CONTENTS_DIR/Info.plist" <<PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>CFBundleDevelopmentRegion</key>
-  <string>en</string>
-  <key>CFBundleExecutable</key>
-  <string>${APP_NAME}</string>
-  <key>CFBundleIdentifier</key>
-  <string>${BUNDLE_ID}</string>
-  <key>CFBundleIconFile</key>
-  <string>SmartKeyboard</string>
-  <key>CFBundleInfoDictionaryVersion</key>
-  <string>6.0</string>
-  <key>CFBundleName</key>
-  <string>${APP_NAME}</string>
-  <key>CFBundlePackageType</key>
-  <string>APPL</string>
-  <key>CFBundleShortVersionString</key>
-  <string>0.1.0</string>
-  <key>CFBundleVersion</key>
-  <string>1</string>
-  <key>LSMinimumSystemVersion</key>
-  <string>13.0</string>
-  <key>LSUIElement</key>
-  <true/>
-  <key>NSInputMonitoringUsageDescription</key>
-  <string>SmartKeyboard observes key events locally to switch between selected Chinese and English input sources.</string>
-  <key>NSAppleEventsUsageDescription</key>
-  <string>SmartKeyboard may open System Settings when permissions are missing.</string>
-</dict>
-</plist>
-PLIST
-
-  if command -v codesign >/dev/null 2>&1; then
-    codesign --force --deep --sign - "$BUNDLE_DIR" >/dev/null 2>&1 || true
-  fi
+  "$ROOT_DIR/Scripts/build-app-bundle.sh" --configuration debug --output "$BUNDLE_DIR"
 else
   echo "Reusing existing $BUNDLE_DIR"
   echo "Run '$0 --rebuild' only after code changes; rebuilding may require granting permissions again."

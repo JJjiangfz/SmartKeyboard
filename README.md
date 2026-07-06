@@ -34,6 +34,18 @@ Grant macOS permissions to the generated app at `BuildProducts/SmartKeyboard.app
 
 然后在 macOS 系统设置里给生成的 `BuildProducts/SmartKeyboard.app` 授权。
 
+To install a clickable release app into Applications:
+
+如果想安装成可从“应用程序”随时点击启动的 release app：
+
+```sh
+Scripts/install-app.sh
+```
+
+Grant macOS permissions to `/Applications/SmartKeyboard.app` after installation. To start it automatically after login, add SmartKeyboard in System Settings -> General -> Login Items.
+
+安装后请给 `/Applications/SmartKeyboard.app` 授权。如果希望开机登录后自动启动，可以在系统设置 -> 通用 -> 登录项里添加 SmartKeyboard。
+
 Required permissions:
 
 需要开启的权限：
