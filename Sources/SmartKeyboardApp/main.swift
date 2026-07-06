@@ -1,6 +1,7 @@
 #if os(macOS)
 import AppKit
 import ApplicationServices
+import IOKit.hid
 import SmartKeyboardCore
 
 @main
@@ -22,10 +23,12 @@ private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let inputSources = SystemInputSourceManager()
     private let preferencesStore = SmartKeyboardPreferencesStore()
+    private let diagnosticsStore = DiagnosticsStore()
     private var preferences = SmartKeyboardPreferences()
     private var engine = SmartKeyboardEngine()
     private var globalMonitor: Any?
     private var localMonitor: Any?
+    private var diagnostics = DiagnosticSnapshot()
     private var lastDecisionSummary = "No decision yet"
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -34,6 +37,8 @@ private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
         configureStatusItem()
         rebuildMenu()
         startPassiveMonitoring()
+        refreshDiagnosticsPermissions()
+        diagnosticsStore.save(diagnostics)
         printStartupSummary()
     }
 
@@ -69,13 +74,22 @@ private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
 
         let permissionTitle = AXIsProcessTrusted()
-            ? "Input Monitoring: Allowed"
-            : "Input Monitoring: Needs Permission"
-        let permissionItem = NSMenuItem(title: permissionTitle, action: #selector(openPrivacySettings), keyEquivalent: "")
-        permissionItem.target = self
-        menu.addItem(permissionItem)
+            ? "Accessibility: Allowed"
+            : "Accessibility: Needs Permission"
+        let accessibilityItem = NSMenuItem(title: permissionTitle, action: #selector(requestAccessibilityPermission), keyEquivalent: "")
+        accessibilityItem.target = self
+        menu.addItem(accessibilityItem)
+
+        let inputMonitoringItem = NSMenuItem(
+            title: "Input Monitoring: \(inputMonitoringStatusText())",
+            action: #selector(requestInputMonitoringPermission),
+            keyEquivalent: ""
+        )
+        inputMonitoringItem.target = self
+        menu.addItem(inputMonitoringItem)
 
         menu.addItem(NSMenuItem(title: "Last: \(lastDecisionSummary)", action: nil, keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Events: \(diagnostics.keyEventCount), classified: \(diagnostics.classifiedEventCount), switches: \(diagnostics.switchRequestCount)", action: nil, keyEquivalent: ""))
 
         menu.addItem(.separator())
         menu.addItem(sourceMenu(title: "Chinese Source", selectedID: preferences.pinyinInputSourceID, mode: .pinyin))
@@ -146,22 +160,34 @@ private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        refreshDiagnosticsPermissions()
+        diagnostics.keyEventCount += 1
         let result = engine.handle(signal(from: event))
         guard let decision = result.decision else {
+            diagnostics.lastAction = String(describing: result.action)
+            diagnosticsStore.save(diagnostics)
             return
         }
 
+        diagnostics.classifiedEventCount += 1
+        diagnostics.lastTokenLength = result.token.count
+        diagnostics.lastIntent = decision.intent
+        diagnostics.lastConfidence = decision.confidence
+        diagnostics.lastAction = String(describing: result.action)
         lastDecisionSummary = "\(decision.token) -> \(decision.intent.rawValue) \(String(format: "%.2f", decision.confidence))"
 
         switch result.action {
         case .none:
             break
         case .switchToPinyin:
+            diagnostics.switchRequestCount += 1
             selectConfiguredSource(preferences.pinyinInputSourceID, fallback: \.isLikelyChinesePinyin)
         case .switchToEnglish:
+            diagnostics.switchRequestCount += 1
             selectConfiguredSource(preferences.englishInputSourceID, fallback: \.isLikelyEnglish)
         }
 
+        diagnosticsStore.save(diagnostics)
         rebuildMenu()
     }
 
@@ -256,8 +282,18 @@ private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
         rebuildMenu()
     }
 
-    @objc private func openPrivacySettings() {
+    @objc private func requestAccessibilityPermission() {
+        let options = [
+            "AXTrustedCheckOptionPrompt": true
+        ] as CFDictionary
+        _ = AXIsProcessTrustedWithOptions(options)
         let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
+        NSWorkspace.shared.open(url)
+    }
+
+    @objc private func requestInputMonitoringPermission() {
+        _ = IOHIDRequestAccess(kIOHIDRequestTypeListenEvent)
+        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent")!
         NSWorkspace.shared.open(url)
     }
 
@@ -272,7 +308,26 @@ private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
         print("Look for 'SmartKeyboard' in the macOS menu bar near Control Center / battery / clock.")
         print("Selectable input sources found: \(sourceCount)")
         print("Preferences file: \(preferencesStore.fileURL.path)")
+        print("Diagnostics file: \(diagnosticsStore.fileURL.path)")
         print("Press Ctrl+C in this terminal, or use the menu item, to stop it.")
+    }
+
+    private func inputMonitoringStatusText() -> String {
+        switch IOHIDCheckAccess(kIOHIDRequestTypeListenEvent) {
+        case kIOHIDAccessTypeGranted:
+            return "Allowed"
+        case kIOHIDAccessTypeDenied:
+            return "Denied"
+        case kIOHIDAccessTypeUnknown:
+            return "Unknown"
+        default:
+            return "Unknown"
+        }
+    }
+
+    private func refreshDiagnosticsPermissions() {
+        diagnostics.accessibilityAllowed = AXIsProcessTrusted()
+        diagnostics.inputMonitoringStatus = inputMonitoringStatusText()
     }
 }
 
