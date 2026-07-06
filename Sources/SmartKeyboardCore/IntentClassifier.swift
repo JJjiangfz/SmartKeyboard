@@ -116,15 +116,7 @@ private enum ModelEvidence {
 
 private struct PinyinModel {
     private let syllables = PinyinSyllables.all
-    private let clearWords: Set<String> = [
-        "nihao", "zhongwen", "xiexie", "shenme", "zenme", "weishenme",
-        "zhongguo", "hanyu", "pinyin", "qiehuan", "shuru", "yingwen",
-        "zhineng", "ceshi", "kaifa", "xiangmu", "wenjian", "xitong",
-        "yonghu", "qingwen", "haode", "duide", "bucuo", "jixu",
-        "keyi", "meiyou", "buyao", "xihuan", "suoyi", "yinwei",
-        "ruguo", "danshi", "zhege", "nage", "dianji", "women",
-        "nimen", "tamen", "zamen"
-    ]
+    private let clearWords = IntentLexicon.clearPinyinWords
 
     func score(_ rawToken: String) -> ModelScore {
         let token = rawToken.lowercased()
@@ -203,31 +195,11 @@ private struct PinyinModel {
 }
 
 private struct EnglishModel {
-    private let commonWords: Set<String> = [
-        "about", "after", "again", "also", "and", "app", "apple", "are", "back",
-        "build", "button", "case", "change", "chinese", "class", "click", "code",
-        "close", "coffee", "command", "config", "control", "copy", "data", "debug",
-        "default", "design", "dictionary", "docker", "else", "email", "english",
-        "false", "file", "for", "from", "func", "function", "github", "google",
-        "hello", "import", "input", "java", "javascript", "json", "keyboard",
-        "kotlin", "linux", "main", "manager", "meeting", "menu", "message",
-        "microsoft", "model", "name", "object", "offline", "online", "open",
-        "openai", "option", "page", "paste", "path", "print", "private",
-        "product", "project", "public", "python", "react", "read", "return",
-        "review", "rust", "schedule", "screen", "server", "source", "string",
-        "struct", "swift", "switch", "terminal", "test", "thanks", "the",
-        "this", "today", "tomorrow", "true", "typescript", "update", "user",
-        "value", "video", "view", "while", "window", "with", "world", "write"
-    ]
-
-    private let englishFragments = [
-        "the", "ing", "tion", "ment", "ness", "able", "ough", "ight", "ck",
-        "wh", "wr", "th", "qu", "ed", "ly", "er"
-    ]
-
-    private let ambiguousPinyinEnglishWords: Set<String> = [
-        "name"
-    ]
+    private let commonWords = IntentLexicon.commonEnglishWords
+    private let englishFragments = IntentLexicon.englishFragments
+    private let ambiguousPinyinEnglishWords = IntentLexicon.ambiguousPinyinEnglishWords
+    private let englishStartingClusters = IntentLexicon.englishStartingClusters
+    private let englishEndingClusters = IntentLexicon.englishEndingClusters
 
     func score(_ rawToken: String, pinyinCoverage: Double) -> ModelScore {
         let token = rawToken.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -363,42 +335,4 @@ private struct EnglishModel {
         englishEndingClusters.contains { lowered.hasSuffix($0) }
     }
 
-    private let englishStartingClusters = [
-        "bl", "br", "cl", "cr", "dr", "fl", "fr", "gl", "gr", "pl",
-        "pr", "sk", "sl", "sm", "sn", "sp", "st", "sw", "tr", "tw",
-        "wh", "wr"
-    ]
-
-    private let englishEndingClusters = [
-        "ct", "ft", "ld", "lk", "lm", "lp", "lt", "mp", "nd", "nk",
-        "nt", "pt", "rd", "rk", "rn", "rp", "rt", "sk", "sp", "st"
-    ]
-}
-
-private enum PinyinSyllables {
-    static let all: Set<String> = [
-        "a", "ai", "an", "ang", "ao",
-        "ba", "bai", "ban", "bang", "bao", "bei", "ben", "beng", "bi", "bian", "biao", "bie", "bin", "bing", "bo", "bu",
-        "ca", "cai", "can", "cang", "cao", "ce", "cen", "ceng", "cha", "chai", "chan", "chang", "chao", "che", "chen", "cheng", "chi", "chong", "chou", "chu", "chua", "chuai", "chuan", "chuang", "chui", "chun", "chuo", "ci", "cong", "cou", "cu", "cuan", "cui", "cun", "cuo",
-        "da", "dai", "dan", "dang", "dao", "de", "dei", "den", "deng", "di", "dia", "dian", "diao", "die", "ding", "diu", "dong", "dou", "du", "duan", "dui", "dun", "duo",
-        "e", "ei", "en", "eng", "er",
-        "fa", "fan", "fang", "fei", "fen", "feng", "fo", "fou", "fu",
-        "ga", "gai", "gan", "gang", "gao", "ge", "gei", "gen", "geng", "gong", "gou", "gu", "gua", "guai", "guan", "guang", "gui", "gun", "guo",
-        "ha", "hai", "han", "hang", "hao", "he", "hei", "hen", "heng", "hong", "hou", "hu", "hua", "huai", "huan", "huang", "hui", "hun", "huo",
-        "ji", "jia", "jian", "jiang", "jiao", "jie", "jin", "jing", "jiong", "jiu", "ju", "juan", "jue", "jun",
-        "ka", "kai", "kan", "kang", "kao", "ke", "ken", "keng", "kong", "kou", "ku", "kua", "kuai", "kuan", "kuang", "kui", "kun", "kuo",
-        "la", "lai", "lan", "lang", "lao", "le", "lei", "leng", "li", "lia", "lian", "liang", "liao", "lie", "lin", "ling", "liu", "lo", "long", "lou", "lu", "lv", "luan", "lve", "lun", "luo",
-        "ma", "mai", "man", "mang", "mao", "me", "mei", "men", "meng", "mi", "mian", "miao", "mie", "min", "ming", "miu", "mo", "mou", "mu",
-        "na", "nai", "nan", "nang", "nao", "ne", "nei", "nen", "neng", "ni", "nian", "niang", "niao", "nie", "nin", "ning", "niu", "nong", "nou", "nu", "nv", "nuan", "nve", "nun", "nuo",
-        "o", "ou",
-        "pa", "pai", "pan", "pang", "pao", "pei", "pen", "peng", "pi", "pian", "piao", "pie", "pin", "ping", "po", "pou", "pu",
-        "qi", "qia", "qian", "qiang", "qiao", "qie", "qin", "qing", "qiong", "qiu", "qu", "quan", "que", "qun",
-        "ran", "rang", "rao", "re", "ren", "reng", "ri", "rong", "rou", "ru", "rua", "ruan", "rui", "run", "ruo",
-        "sa", "sai", "san", "sang", "sao", "se", "sen", "seng", "sha", "shai", "shan", "shang", "shao", "she", "shei", "shen", "sheng", "shi", "shou", "shu", "shua", "shuai", "shuan", "shuang", "shui", "shun", "shuo", "si", "song", "sou", "su", "suan", "sui", "sun", "suo",
-        "ta", "tai", "tan", "tang", "tao", "te", "teng", "ti", "tian", "tiao", "tie", "ting", "tong", "tou", "tu", "tuan", "tui", "tun", "tuo",
-        "wa", "wai", "wan", "wang", "wei", "wen", "weng", "wo", "wu",
-        "xi", "xia", "xian", "xiang", "xiao", "xie", "xin", "xing", "xiong", "xiu", "xu", "xuan", "xue", "xun",
-        "ya", "yan", "yang", "yao", "ye", "yi", "yin", "ying", "yo", "yong", "you", "yu", "yuan", "yue", "yun",
-        "za", "zai", "zan", "zang", "zao", "ze", "zei", "zen", "zeng", "zha", "zhai", "zhan", "zhang", "zhao", "zhe", "zhei", "zhen", "zheng", "zhi", "zhong", "zhou", "zhu", "zhua", "zhuai", "zhuan", "zhuang", "zhui", "zhun", "zhuo", "zi", "zong", "zou", "zu", "zuan", "zui", "zun", "zuo"
-    ]
 }

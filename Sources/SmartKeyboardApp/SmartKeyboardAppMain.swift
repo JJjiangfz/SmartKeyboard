@@ -24,6 +24,7 @@ private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
     private let inputSources = SystemInputSourceManager()
     private let preferencesStore = SmartKeyboardPreferencesStore()
     private let diagnosticsStore = DiagnosticsStore()
+    private let keyReplayer = SyntheticKeyReplayer()
     private var preferences = SmartKeyboardPreferences()
     private var engine = SmartKeyboardEngine()
     private var globalMonitor: Any?
@@ -31,7 +32,6 @@ private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
     private var diagnostics = DiagnosticSnapshot()
     private var lastDecisionSummary = "No decision yet"
     private var suppressKeyboardEventsUntil = Date.distantPast
-    private let syntheticEventSource = CGEventSource(stateID: .hidSystemState)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         preferences = preferencesStore.load()
@@ -158,7 +158,7 @@ private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handle(_ event: NSEvent) {
-        guard !isSyntheticReplayEvent(event), Date() >= suppressKeyboardEventsUntil else {
+        guard !keyReplayer.isReplayEvent(event), Date() >= suppressKeyboardEventsUntil else {
             return
         }
 
@@ -168,7 +168,7 @@ private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
 
         refreshDiagnosticsPermissions()
         diagnostics.keyEventCount += 1
-        let result = engine.handle(signal(from: event))
+        let result = engine.handle(KeyboardEventMapper.signal(from: event))
         guard let decision = result.decision else {
             diagnostics.lastAction = String(describing: result.action)
             diagnosticsStore.save(diagnostics)
@@ -203,32 +203,6 @@ private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
 
         diagnosticsStore.save(diagnostics)
         rebuildMenu()
-    }
-
-    private func signal(from event: NSEvent) -> KeyboardSignal {
-        let flags = event.modifierFlags.intersection([.command, .control, .option, .function])
-        if !flags.isEmpty {
-            return .modifiedKey
-        }
-
-        switch event.keyCode {
-        case 51:
-            return .backspace
-        case 36, 48, 49, 76:
-            return .separator
-        case 53:
-            return .cancel
-        default:
-            break
-        }
-
-        guard let text = event.characters,
-              let character = text.first,
-              text.count == 1 else {
-            return .separator
-        }
-
-        return .character(character)
     }
 
     private func switchToConfiguredSource(
@@ -273,110 +247,23 @@ private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
         }
 
         suppressReplayedEvents()
-        postBackspaces(count: replay.deleteCount)
+        keyReplayer.deleteCharacters(count: replay.deleteCount)
 
         guard selectInputSource(id: targetID) else {
             Thread.sleep(forTimeInterval: 0.03)
-            postLetters(replay.text)
+            keyReplayer.replayLetters(replay.text)
             suppressReplayedEvents()
             return
         }
 
         Thread.sleep(forTimeInterval: 0.05)
-        postLetters(replay.text)
+        keyReplayer.replayLetters(replay.text)
         suppressReplayedEvents()
     }
 
     private func suppressReplayedEvents(for duration: TimeInterval = 0.2) {
         suppressKeyboardEventsUntil = max(suppressKeyboardEventsUntil, Date().addingTimeInterval(duration))
     }
-
-    private func postBackspaces(count: Int) {
-        for _ in 0..<count {
-            postKey(keyCode: 51)
-        }
-    }
-
-    private func postLetters(_ text: String) {
-        for character in text {
-            guard let keyCode = Self.keyCode(for: character) else {
-                continue
-            }
-
-            let flags: CGEventFlags = Self.requiresShift(for: character) ? .maskShift : []
-            postKey(keyCode: keyCode, flags: flags)
-        }
-    }
-
-    private func postKey(keyCode: CGKeyCode, flags: CGEventFlags = []) {
-        guard let keyDown = CGEvent(
-            keyboardEventSource: syntheticEventSource,
-            virtualKey: keyCode,
-            keyDown: true
-        ),
-            let keyUp = CGEvent(
-                keyboardEventSource: syntheticEventSource,
-                virtualKey: keyCode,
-                keyDown: false
-            ) else {
-            return
-        }
-
-        keyDown.flags = flags
-        keyUp.flags = flags
-        keyDown.setIntegerValueField(.eventSourceUserData, value: Self.syntheticEventMarker)
-        keyUp.setIntegerValueField(.eventSourceUserData, value: Self.syntheticEventMarker)
-        keyDown.post(tap: .cghidEventTap)
-        keyUp.post(tap: .cghidEventTap)
-    }
-
-    private func isSyntheticReplayEvent(_ event: NSEvent) -> Bool {
-        event.cgEvent?.getIntegerValueField(.eventSourceUserData) == Self.syntheticEventMarker
-    }
-
-    private static func keyCode(for character: Character) -> CGKeyCode? {
-        guard let lowercased = String(character).lowercased().first else {
-            return nil
-        }
-
-        return letterKeyCodes[lowercased]
-    }
-
-    private static func requiresShift(for character: Character) -> Bool {
-        let string = String(character)
-        return string.uppercased() == string && string.lowercased() != string
-    }
-
-    private static let letterKeyCodes: [Character: CGKeyCode] = [
-        "a": 0,
-        "s": 1,
-        "d": 2,
-        "f": 3,
-        "h": 4,
-        "g": 5,
-        "z": 6,
-        "x": 7,
-        "c": 8,
-        "v": 9,
-        "b": 11,
-        "q": 12,
-        "w": 13,
-        "e": 14,
-        "r": 15,
-        "y": 16,
-        "t": 17,
-        "o": 31,
-        "u": 32,
-        "i": 34,
-        "p": 35,
-        "l": 37,
-        "j": 38,
-        "k": 40,
-        "n": 45,
-        "m": 46
-    ]
-
-    private static let syntheticEventMarker: Int64 = 0x534D_4B42
 
     private func refreshEngineConfiguration() {
         engine.update(
