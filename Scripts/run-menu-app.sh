@@ -65,5 +65,5 @@ open "$BUNDLE_DIR"
 
 echo "Started $BUNDLE_DIR"
 echo "Look for 'SmartKeyboard' in the macOS menu bar."
-echo "If permissions are needed, grant them to SmartKeyboard in Privacy & Security."
+echo "Open the SmartKeyboard menu to check Accessibility and Input Monitoring status."
 echo "Permission picker path: $BUNDLE_DIR"
