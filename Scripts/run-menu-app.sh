@@ -4,8 +4,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_NAME="SmartKeyboard"
 BUNDLE_ID="com.jjjiangfz.SmartKeyboard"
-BUILD_DIR="$ROOT_DIR/.build"
-BUNDLE_DIR="$BUILD_DIR/${APP_NAME}.app"
+SWIFT_BUILD_DIR="$ROOT_DIR/.build"
+BUNDLE_PRODUCTS_DIR="$ROOT_DIR/BuildProducts"
+BUNDLE_DIR="$BUNDLE_PRODUCTS_DIR/${APP_NAME}.app"
 CONTENTS_DIR="$BUNDLE_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 EXECUTABLE="$MACOS_DIR/$APP_NAME"
@@ -16,7 +17,7 @@ swift build --product SmartKeyboardApp
 
 rm -rf "$BUNDLE_DIR"
 mkdir -p "$MACOS_DIR"
-cp "$BUILD_DIR/arm64-apple-macosx/debug/SmartKeyboardApp" "$EXECUTABLE"
+cp "$SWIFT_BUILD_DIR/arm64-apple-macosx/debug/SmartKeyboardApp" "$EXECUTABLE"
 chmod +x "$EXECUTABLE"
 
 cat > "$CONTENTS_DIR/Info.plist" <<PLIST
@@ -56,9 +57,13 @@ PLIST
 /usr/bin/pkill -x SmartKeyboardApp 2>/dev/null || true
 /usr/bin/pkill -x SmartKeyboard 2>/dev/null || true
 
+if command -v codesign >/dev/null 2>&1; then
+  codesign --force --deep --sign - "$BUNDLE_DIR" >/dev/null 2>&1 || true
+fi
+
 open "$BUNDLE_DIR"
 
 echo "Started $BUNDLE_DIR"
 echo "Look for 'SmartKeyboard' in the macOS menu bar."
 echo "If permissions are needed, grant them to SmartKeyboard in Privacy & Security."
-
+echo "Permission picker path: $BUNDLE_DIR"

@@ -38,7 +38,7 @@ chmod +x Scripts/run-menu-app.sh
 Scripts/run-menu-app.sh
 ```
 
-The wrapper creates `.build/SmartKeyboard.app`, launches it with `open`, and stops any previous development instance first.
+The wrapper creates `BuildProducts/SmartKeyboard.app`, launches it with `open`, and stops any previous development instance first. Use that visible path when adding SmartKeyboard to macOS Privacy & Security permissions.
 
 The menu-bar app needs macOS input-monitoring/accessibility permissions to observe global key events reliably.
 
