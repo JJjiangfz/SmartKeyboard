@@ -31,6 +31,15 @@ swift run SmartKeyboardCLI
 swift run SmartKeyboardApp
 ```
 
+For a more realistic menu-bar launch during development, use the local app-bundle wrapper:
+
+```sh
+chmod +x Scripts/run-menu-app.sh
+Scripts/run-menu-app.sh
+```
+
+The wrapper creates `.build/SmartKeyboard.app`, launches it with `open`, and stops any previous development instance first.
+
 The menu-bar app needs macOS input-monitoring/accessibility permissions to observe global key events reliably.
 
 This machine's Command Line Tools installation does not include an importable XCTest module, so the repository uses Swift Testing for the lightweight test target and also carries a dependency-free self-test executable. `SmartKeyboardSelfTest` prints an explicit pass/fail result and covers the file-system preference round trip.
