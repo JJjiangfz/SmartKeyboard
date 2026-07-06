@@ -1,9 +1,35 @@
 import Testing
 @testable import SmartKeyboardCore
 
+private let stableEnglishWords: Set<String> = [
+    "because", "casual", "database", "delete", "feature", "final", "language",
+    "normal", "notebook", "office", "plugin", "software", "system", "cursor", "words"
+]
+
+private let stableEnglishPrefixes: Set<String> = [
+    "casu", "casua", "datab", "databa", "langu", "langua"
+]
+
+private final class FakeEnglishWordChecker: EnglishWordChecking {
+    func isKnownEnglishWord(_ token: String) -> Bool {
+        stableEnglishWords.contains(token.lowercased())
+    }
+
+    func hasEnglishCompletion(forPrefix token: String) -> Bool {
+        stableEnglishPrefixes.contains(token.lowercased())
+    }
+}
+
+func makeTestClassifier() -> ConservativeIntentClassifier {
+    ConservativeIntentClassifier(
+        config: ClassificationConfig(),
+        englishWordChecker: FakeEnglishWordChecker()
+    )
+}
+
 @Suite
 struct IntentClassifierTests {
-    private let classifier = ConservativeIntentClassifier()
+    private let classifier = makeTestClassifier()
 
     @Test
     func clearPinyinTokens() {
@@ -27,8 +53,27 @@ struct IntentClassifierTests {
     }
 
     @Test
+    func systemDictionaryEnglishWordsBeatMechanicalPinyinSegmentation() {
+        for token in [
+            "language", "database", "delete", "feature", "system", "software",
+            "because", "normal", "casual", "office", "cursor", "plugin",
+            "words", "final"
+        ] {
+            expectIntent(token, .english)
+        }
+    }
+
+    @Test
+    func injectedDictionaryWordsAreRecognizedAsEnglish() {
+        expectIntent("notebook", .english)
+    }
+
+    @Test
     func commonPinyinPhrasesStayPinyin() {
-        for token in ["women", "nimen", "tamen", "wenjian", "xiangmu"] {
+        for token in [
+            "women", "nimen", "tamen", "mama", "baba", "laoshi", "qingchu",
+            "zhongwen", "wenjian", "xiangmu"
+        ] {
             expectIntent(token, .pinyin)
         }
     }
@@ -42,7 +87,7 @@ struct IntentClassifierTests {
 
     @Test
     func shortAmbiguousTokensStayUnknown() {
-        for token in ["he", "shi", "ma", "ai", "to", "name"] {
+        for token in ["he", "shi", "ma", "wo", "ni", "hao", "ai", "to", "name", "lang", "long", "can"] {
             expectIntent(token, .unknown)
         }
     }

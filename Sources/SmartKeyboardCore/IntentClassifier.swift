@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 public protocol IntentClassifying {
@@ -6,11 +7,19 @@ public protocol IntentClassifying {
 
 public final class ConservativeIntentClassifier: IntentClassifying {
     private let config: ClassificationConfig
-    private let pinyinModel = PinyinModel()
-    private let englishModel = EnglishModel()
+    private let pinyinModel: PinyinModel
+    private let englishModel: EnglishModel
 
     public init(config: ClassificationConfig = ClassificationConfig()) {
         self.config = config
+        self.pinyinModel = PinyinModel()
+        self.englishModel = EnglishModel(wordChecker: SystemEnglishSpellChecker())
+    }
+
+    init(config: ClassificationConfig, englishWordChecker: EnglishWordChecking) {
+        self.config = config
+        self.pinyinModel = PinyinModel()
+        self.englishModel = EnglishModel(wordChecker: englishWordChecker)
     }
 
     public func classify(_ token: String) -> IntentDecision {
@@ -29,6 +38,29 @@ public final class ConservativeIntentClassifier: IntentClassifying {
 
         let pinyin = pinyinModel.score(trimmed)
         let english = englishModel.score(trimmed, pinyinCoverage: pinyin.coverage)
+
+        if english.evidence == .englishPrefix,
+           pinyin.evidence == .pinyinShape {
+            return IntentDecision(
+                token: token,
+                intent: .unknown,
+                confidence: max(pinyin.value, english.value),
+                pinyinScore: pinyin.value,
+                englishScore: english.value,
+                reason: "english prefix is still ambiguous"
+            )
+        }
+
+        if english.evidence == .ambiguousPinyinEnglish {
+            return IntentDecision(
+                token: token,
+                intent: .unknown,
+                confidence: max(pinyin.value, english.value),
+                pinyinScore: pinyin.value,
+                englishScore: english.value,
+                reason: "ambiguous pinyin/english word"
+            )
+        }
 
         let pinyinWins = pinyin.value >= config.minimumConfidence
             && pinyin.value - english.value >= config.minimumMargin
@@ -105,12 +137,67 @@ private enum ModelEvidence {
     case clearPinyinWord
     case pinyinShape
     case strongEnglish
+    case ambiguousPinyinEnglish
+    case englishPrefix
     case englishShape
     case weak
     case none
 
     var isStrongEnglish: Bool {
         self == .strongEnglish
+    }
+}
+
+protocol EnglishWordChecking: AnyObject {
+    func isKnownEnglishWord(_ token: String) -> Bool
+    func hasEnglishCompletion(forPrefix token: String) -> Bool
+}
+
+final class SystemEnglishSpellChecker: EnglishWordChecking {
+    private let checker = NSSpellChecker.shared
+    private let language = "en_US"
+    private var wordCache: [String: Bool] = [:]
+    private var completionCache: [String: Bool] = [:]
+
+    func isKnownEnglishWord(_ token: String) -> Bool {
+        let lowered = token.lowercased()
+        if let cached = wordCache[lowered] {
+            return cached
+        }
+
+        let isKnown = checker.checkSpelling(
+            of: lowered,
+            startingAt: 0,
+            language: language,
+            wrap: false,
+            inSpellDocumentWithTag: 0,
+            wordCount: nil
+        ).location == NSNotFound
+
+        wordCache[lowered] = isKnown
+        return isKnown
+    }
+
+    func hasEnglishCompletion(forPrefix token: String) -> Bool {
+        let lowered = token.lowercased()
+        if let cached = completionCache[lowered] {
+            return cached
+        }
+
+        let length = (lowered as NSString).length
+        let completions = checker.completions(
+            forPartialWordRange: NSRange(location: 0, length: length),
+            in: lowered,
+            language: language,
+            inSpellDocumentWithTag: 0
+        ) ?? []
+        let hasCompletion = completions.contains {
+            let completion = $0.lowercased()
+            return completion.hasPrefix(lowered) && completion != lowered
+        }
+
+        completionCache[lowered] = hasCompletion
+        return hasCompletion
     }
 }
 
@@ -200,6 +287,11 @@ private struct EnglishModel {
     private let ambiguousPinyinEnglishWords = IntentLexicon.ambiguousPinyinEnglishWords
     private let englishStartingClusters = IntentLexicon.englishStartingClusters
     private let englishEndingClusters = IntentLexicon.englishEndingClusters
+    private let wordChecker: EnglishWordChecking
+
+    init(wordChecker: EnglishWordChecking) {
+        self.wordChecker = wordChecker
+    }
 
     func score(_ rawToken: String, pinyinCoverage: Double) -> ModelScore {
         let token = rawToken.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -230,7 +322,7 @@ private struct EnglishModel {
         }
 
         if ambiguousPinyinEnglishWords.contains(lowered) {
-            return ModelScore(value: 0.88, coverage: 1, reason: "ambiguous pinyin/english word", evidence: .englishShape)
+            return ModelScore(value: 0.88, coverage: 1, reason: "ambiguous pinyin/english word", evidence: .ambiguousPinyinEnglish)
         }
 
         if commonWords.contains(lowered), lowered.count >= 3 {
@@ -239,6 +331,14 @@ private struct EnglishModel {
 
         if lowered.count <= 2 {
             return ModelScore(value: 0.22, coverage: 0.2, reason: "short ambiguous english", evidence: .weak)
+        }
+
+        if lowered.count >= 4, wordChecker.isKnownEnglishWord(lowered) {
+            return ModelScore(value: 0.93, coverage: 1, reason: "system english dictionary word", evidence: .strongEnglish)
+        }
+
+        if lowered.count >= 4, wordChecker.hasEnglishCompletion(forPrefix: lowered) {
+            return ModelScore(value: 0.72, coverage: 0.72, reason: "system english dictionary prefix", evidence: .englishPrefix)
         }
 
         var value = 0.18

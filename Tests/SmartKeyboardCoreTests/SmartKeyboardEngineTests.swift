@@ -5,7 +5,7 @@ import Testing
 struct SmartKeyboardEngineTests {
     @Test
     func engineSwitchesOnceForClearPinyinToken() {
-        let engine = SmartKeyboardEngine()
+        let engine = SmartKeyboardEngine(classifier: makeTestClassifier())
         var actions: [SwitchingAction] = []
 
         for character in "nihao" {
@@ -18,7 +18,7 @@ struct SmartKeyboardEngineTests {
 
     @Test
     func separatorResetsTokenAndAllowsNextIntent() {
-        let engine = SmartKeyboardEngine()
+        let engine = SmartKeyboardEngine(classifier: makeTestClassifier())
 
         for character in "nihao" {
             _ = engine.handle(.character(character))
@@ -37,7 +37,7 @@ struct SmartKeyboardEngineTests {
 
     @Test
     func englishWordsThatLookPinyinLikeStillSwitchToEnglish() {
-        let engine = SmartKeyboardEngine()
+        let engine = SmartKeyboardEngine(classifier: makeTestClassifier())
         var actions: [SwitchingAction] = []
 
         for character in "chinese" {
@@ -49,7 +49,7 @@ struct SmartKeyboardEngineTests {
 
     @Test
     func technicalEnglishWordsSwitchToEnglish() {
-        let engine = SmartKeyboardEngine()
+        let engine = SmartKeyboardEngine(classifier: makeTestClassifier())
         var actions: [SwitchingAction] = []
 
         for character in "print" {
@@ -60,8 +60,23 @@ struct SmartKeyboardEngineTests {
     }
 
     @Test
+    func englishPrefixesDoNotTriggerPinyinBeforeFinalEnglishWord() {
+        for word in ["language", "database", "casual"] {
+            let engine = SmartKeyboardEngine(classifier: makeTestClassifier())
+            var actions: [SwitchingAction] = []
+
+            for character in word {
+                actions.append(engine.handle(.character(character)).action)
+            }
+
+            #expect(!actions.contains(.switchToPinyin), "\(word) should not switch to pinyin while typing")
+            #expect(actions.contains(.switchToEnglish), "\(word) should switch to english")
+        }
+    }
+
+    @Test
     func backspaceUpdatesTokenWithoutSwitching() {
-        let engine = SmartKeyboardEngine()
+        let engine = SmartKeyboardEngine(classifier: makeTestClassifier())
 
         for character in "niha" {
             _ = engine.handle(.character(character))
@@ -75,6 +90,7 @@ struct SmartKeyboardEngineTests {
     @Test
     func bufferedModePlansTokenReplayWhenSwitching() {
         let engine = SmartKeyboardEngine(
+            classifier: makeTestClassifier(),
             configuration: SmartKeyboardEngineConfiguration(bufferedMode: true)
         )
         var replay: BufferedReplay?
@@ -89,7 +105,7 @@ struct SmartKeyboardEngineTests {
 
     @Test
     func passiveModeDoesNotPlanTokenReplay() {
-        let engine = SmartKeyboardEngine()
+        let engine = SmartKeyboardEngine(classifier: makeTestClassifier())
         var replays: [BufferedReplay] = []
 
         for character in "nihao" {
@@ -104,7 +120,7 @@ struct SmartKeyboardEngineTests {
 
     @Test
     func modifiedKeyClearsToken() {
-        let engine = SmartKeyboardEngine()
+        let engine = SmartKeyboardEngine(classifier: makeTestClassifier())
         _ = engine.handle(.character("n"))
         _ = engine.handle(.character("i"))
         let result = engine.handle(.modifiedKey)
@@ -116,6 +132,7 @@ struct SmartKeyboardEngineTests {
     @Test
     func disabledEngineDoesNotClassify() {
         let engine = SmartKeyboardEngine(
+            classifier: makeTestClassifier(),
             configuration: SmartKeyboardEngineConfiguration(isEnabled: false)
         )
 

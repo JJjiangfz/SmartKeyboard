@@ -41,7 +41,18 @@ private func testClassifier() throws {
         try expectIntent(token, .english, classifier: classifier)
     }
 
-    for token in ["women", "nimen", "tamen", "wenjian", "xiangmu"] {
+    for token in [
+        "language", "database", "delete", "feature", "system", "software",
+        "because", "normal", "casual", "office", "cursor", "plugin",
+        "words", "final"
+    ] {
+        try expectIntent(token, .english, classifier: classifier)
+    }
+
+    for token in [
+        "women", "nimen", "tamen", "mama", "baba", "laoshi", "qingchu",
+        "zhongwen", "wenjian", "xiangmu"
+    ] {
         try expectIntent(token, .pinyin, classifier: classifier)
     }
 
@@ -49,7 +60,7 @@ private func testClassifier() throws {
         try expectIntent(token, .english, classifier: classifier)
     }
 
-    for token in ["he", "shi", "ma", "ai", "to", "name"] {
+    for token in ["he", "shi", "ma", "wo", "ni", "hao", "ai", "to", "name", "lang", "long", "can"] {
         try expectIntent(token, .unknown, classifier: classifier)
     }
 }
@@ -88,6 +99,16 @@ private func testEngine() throws {
         technicalEnglishActions.append(technicalEnglishEngine.handle(.character(character)).action)
     }
     try expect(technicalEnglishActions.contains(.switchToEnglish), "expected print to switch to english")
+
+    for word in ["language", "database", "casual"] {
+        let engine = SmartKeyboardEngine()
+        var actions: [SwitchingAction] = []
+        for character in word {
+            actions.append(engine.handle(.character(character)).action)
+        }
+        try expect(!actions.contains(.switchToPinyin), "\(word) should not switch to pinyin while typing")
+        try expect(actions.contains(.switchToEnglish), "\(word) should switch to english")
+    }
 
     let backspaceEngine = SmartKeyboardEngine()
     for character in "niha" {
