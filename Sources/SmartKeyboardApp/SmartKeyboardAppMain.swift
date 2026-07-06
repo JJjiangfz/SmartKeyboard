@@ -52,6 +52,7 @@ private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
     private func configureStatusItem() {
         statusItem.isVisible = true
         statusItem.button?.image = statusIcon
+        statusItem.button?.imageScaling = .scaleProportionallyDown
         statusItem.button?.imagePosition = .imageOnly
         statusItem.button?.title = ""
         statusItem.button?.toolTip = "SmartKeyboard"
@@ -117,12 +118,43 @@ private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private static func makeStatusIcon() -> NSImage {
-        guard let image = NSImage(systemSymbolName: "keyboard", accessibilityDescription: "SmartKeyboard") else {
-            return NSImage()
+        let image = NSImage(size: NSSize(width: 18, height: 18))
+        image.lockFocus()
+
+        NSColor.black.setStroke()
+        NSColor.black.setFill()
+
+        let keyboardRect = NSRect(x: 2.5, y: 4, width: 13, height: 10)
+        let keyboardPath = NSBezierPath(roundedRect: keyboardRect, xRadius: 2.5, yRadius: 2.5)
+        keyboardPath.lineWidth = 1.6
+        keyboardPath.stroke()
+
+        for keyRect in [
+            NSRect(x: 5, y: 10, width: 2, height: 1.5),
+            NSRect(x: 8, y: 10, width: 2, height: 1.5),
+            NSRect(x: 11, y: 10, width: 2, height: 1.5),
+            NSRect(x: 5, y: 7, width: 8, height: 1.5)
+        ] {
+            NSBezierPath(roundedRect: keyRect, xRadius: 0.7, yRadius: 0.7).fill()
         }
 
+        let rightArrow = NSBezierPath()
+        rightArrow.move(to: NSPoint(x: 5, y: 2.7))
+        rightArrow.line(to: NSPoint(x: 12.2, y: 2.7))
+        rightArrow.lineWidth = 1.5
+        rightArrow.lineCapStyle = .round
+        rightArrow.stroke()
+
+        let rightHead = NSBezierPath()
+        rightHead.move(to: NSPoint(x: 12.2, y: 2.7))
+        rightHead.line(to: NSPoint(x: 10.3, y: 1.2))
+        rightHead.line(to: NSPoint(x: 10.3, y: 4.2))
+        rightHead.close()
+        rightHead.fill()
+
+        image.unlockFocus()
+
         image.isTemplate = true
-        image.size = NSSize(width: 18, height: 18)
         return image
     }
 
