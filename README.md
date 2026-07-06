@@ -20,9 +20,40 @@ Ambiguous short tokens such as `shi`, `ma`, and `name` are intentionally left al
 
 ## Quick Start / 快速开始 🏃
 
-Build and launch the local menu-bar app after the first clone or after code changes:
+For normal daily use, install SmartKeyboard into Applications:
 
-首次 clone 或代码更新后，用下面的命令构建并启动本地菜单栏 app：
+日常使用推荐先安装到“应用程序”：
+
+```sh
+Scripts/install-app.sh
+```
+
+This builds a release app at `/Applications/SmartKeyboard.app` and opens it. After that, you can start SmartKeyboard like any other Mac app: click it in Applications, Launchpad, or Spotlight. The app runs in the menu bar, so look for the keyboard icon near Control Center / battery / clock.
+
+这会生成 release 版 `/Applications/SmartKeyboard.app` 并启动它。以后就可以像普通 Mac app 一样启动：在“应用程序”、Launchpad 或 Spotlight 中点击 SmartKeyboard。启动后它会常驻菜单栏，请在控制中心 / 电池 / 时钟附近找键盘图标。
+
+Grant macOS permissions to `/Applications/SmartKeyboard.app` after installation:
+
+安装后请给 `/Applications/SmartKeyboard.app` 授权：
+
+- Accessibility
+- Input Monitoring
+
+To start SmartKeyboard automatically after login, add it in System Settings -> General -> Login Items.
+
+如果希望开机登录后自动启动，可以在系统设置 -> 通用 -> 登录项里添加 SmartKeyboard。
+
+After pulling new code, rerun the installer to replace the app in Applications:
+
+以后拉取新代码后，重新运行安装脚本即可更新“应用程序”里的 app：
+
+```sh
+Scripts/install-app.sh
+```
+
+For local development, build and launch the disposable app under `BuildProducts/SmartKeyboard.app`:
+
+本地开发调试时，可以构建并启动 `BuildProducts/SmartKeyboard.app`：
 
 ```sh
 swift build
@@ -30,51 +61,19 @@ Scripts/reset-permissions.sh
 Scripts/run-menu-app.sh --rebuild
 ```
 
-Grant macOS permissions to the generated app at `BuildProducts/SmartKeyboard.app`.
-
-然后在 macOS 系统设置里给生成的 `BuildProducts/SmartKeyboard.app` 授权。
-
-To install a clickable release app into Applications:
-
-如果想安装成可从“应用程序”随时点击启动的 release app：
-
-```sh
-Scripts/install-app.sh
-```
-
-Grant macOS permissions to `/Applications/SmartKeyboard.app` after installation. To start it automatically after login, add SmartKeyboard in System Settings -> General -> Login Items.
-
-安装后请给 `/Applications/SmartKeyboard.app` 授权。如果希望开机登录后自动启动，可以在系统设置 -> 通用 -> 登录项里添加 SmartKeyboard。
-
-Required permissions:
-
-需要开启的权限：
-
-- Accessibility
-- Input Monitoring
-
-After permissions are granted, use the normal launcher for day-to-day restarts:
-
-授权完成后，日常重启测试只需要运行：
-
-```sh
-Scripts/run-menu-app.sh
-```
-
 ## Permission Notes / 权限说明
 
-The development app is ad-hoc signed. After `--rebuild`, macOS may still show SmartKeyboard as enabled in System Settings, while the new executable no longer matches the old permission record. If the menu says permissions are missing, reset and grant again:
+The local app is ad-hoc signed. After reinstalling or rebuilding, macOS may still show SmartKeyboard as enabled in System Settings, while the new executable no longer matches the old permission record. If the menu says permissions are missing, reset and grant again:
 
-开发版 app 使用本地 ad-hoc 签名。每次 `--rebuild` 后，macOS 系统设置里可能仍然显示 SmartKeyboard 已开启权限，但新的可执行文件已经不匹配旧权限记录。如果菜单栏里显示权限缺失，请重置后重新授权：
+本地 app 使用 ad-hoc 签名。重新安装或 `--rebuild` 后，macOS 系统设置里可能仍然显示 SmartKeyboard 已开启权限，但新的可执行文件已经不匹配旧权限记录。如果菜单栏里显示权限缺失，请重置后重新授权：
 
 ```sh
 Scripts/reset-permissions.sh
-Scripts/run-menu-app.sh --rebuild
 ```
 
-Then add or re-enable `BuildProducts/SmartKeyboard.app` in both Accessibility and Input Monitoring.
+Then run `Scripts/install-app.sh` and add or re-enable `/Applications/SmartKeyboard.app` in both Accessibility and Input Monitoring. For development-only runs, use `Scripts/run-menu-app.sh --rebuild` and grant `BuildProducts/SmartKeyboard.app` instead.
 
-然后在 Accessibility 和 Input Monitoring 两处重新添加或重新开启 `BuildProducts/SmartKeyboard.app`。
+然后运行 `Scripts/install-app.sh`，并在 Accessibility 和 Input Monitoring 两处重新添加或重新开启 `/Applications/SmartKeyboard.app`。如果只是开发调试，则运行 `Scripts/run-menu-app.sh --rebuild`，并改为授权 `BuildProducts/SmartKeyboard.app`。
 
 ## Menu Setup / 菜单设置
 
