@@ -72,6 +72,19 @@ private func testEngine() throws {
     try expect(backspace.token == "nih", "backspace should remove last token character")
     try expect(backspace.action == .none, "backspace should not switch input source")
 
+    let bufferedEngine = SmartKeyboardEngine(
+        configuration: SmartKeyboardEngineConfiguration(bufferedMode: true)
+    )
+    var replay: BufferedReplay?
+    for character in "nihao" {
+        let result = bufferedEngine.handle(.character(character))
+        replay = result.bufferedReplay ?? replay
+    }
+    try expect(
+        replay == BufferedReplay(text: "nihao", deleteCount: 5),
+        "buffered mode should request deletion and replay for the detected token"
+    )
+
     let disabled = SmartKeyboardEngine(
         configuration: SmartKeyboardEngineConfiguration(isEnabled: false)
     )

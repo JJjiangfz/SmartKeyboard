@@ -8,7 +8,7 @@ public struct SmartKeyboardPreferences: Codable, Equatable, Sendable {
 
     public init(
         enabled: Bool = true,
-        bufferedMode: Bool = false,
+        bufferedMode: Bool = true,
         pinyinInputSourceID: String? = nil,
         englishInputSourceID: String? = nil
     ) {
@@ -65,4 +65,3 @@ private extension JSONEncoder {
         return encoder
     }
 }
-

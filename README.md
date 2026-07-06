@@ -8,9 +8,9 @@ The project deliberately does **not** install a custom input method and does **n
 
 - `SmartKeyboardCore`: classification, token state, preferences, and macOS input-source selection.
 - `SmartKeyboardCLI`: deterministic preview for classifier tuning.
-- `SmartKeyboardApp`: AppKit menu-bar app with passive switching.
+- `SmartKeyboardApp`: AppKit menu-bar app with passive switching and optional buffered replay.
 
-Buffered key replay is represented as an experimental setting, but the first app build keeps passive switching as the default and safe behavior.
+Buffered Mode is enabled by default for new preferences. When a high-confidence switch is needed, SmartKeyboard removes the observed Latin token, changes to the target input source, and replays the same letters as synthetic key presses so the target input method receives the whole token. Passive switching remains available by turning Buffered Mode off from the menu.
 
 ## Safety Boundaries
 
@@ -40,7 +40,7 @@ Scripts/run-menu-app.sh
 
 The wrapper creates `BuildProducts/SmartKeyboard.app`, launches it with `open`, and stops any previous development instance first. It reuses the existing app by default so macOS privacy permissions do not get invalidated on every restart. Use `Scripts/run-menu-app.sh --rebuild` only after code changes.
 
-The menu-bar app needs macOS input-monitoring/accessibility permissions to observe global key events reliably.
+The menu-bar app needs macOS input-monitoring/accessibility permissions to observe global key events reliably. Buffered Mode also needs Accessibility permission to send the corrective backspace and replay key events.
 Grant the visible `BuildProducts/SmartKeyboard.app` in both Privacy & Security pages:
 
 - Accessibility

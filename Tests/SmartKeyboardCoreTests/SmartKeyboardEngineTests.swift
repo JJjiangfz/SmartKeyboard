@@ -49,6 +49,36 @@ struct SmartKeyboardEngineTests {
     }
 
     @Test
+    func bufferedModePlansTokenReplayWhenSwitching() {
+        let engine = SmartKeyboardEngine(
+            configuration: SmartKeyboardEngineConfiguration(bufferedMode: true)
+        )
+        var replay: BufferedReplay?
+
+        for character in "nihao" {
+            let result = engine.handle(.character(character))
+            replay = result.bufferedReplay ?? replay
+        }
+
+        #expect(replay == BufferedReplay(text: "nihao", deleteCount: 5))
+    }
+
+    @Test
+    func passiveModeDoesNotPlanTokenReplay() {
+        let engine = SmartKeyboardEngine()
+        var replays: [BufferedReplay] = []
+
+        for character in "nihao" {
+            let result = engine.handle(.character(character))
+            if let replay = result.bufferedReplay {
+                replays.append(replay)
+            }
+        }
+
+        #expect(replays.isEmpty)
+    }
+
+    @Test
     func modifiedKeyClearsToken() {
         let engine = SmartKeyboardEngine()
         _ = engine.handle(.character("n"))
@@ -70,4 +100,3 @@ struct SmartKeyboardEngineTests {
         #expect(result.action == .none)
     }
 }
-

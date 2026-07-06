@@ -14,15 +14,32 @@ public enum SwitchingAction: Equatable, Sendable {
     case switchToEnglish
 }
 
+public struct BufferedReplay: Equatable, Sendable {
+    public let text: String
+    public let deleteCount: Int
+
+    public init(text: String, deleteCount: Int) {
+        self.text = text
+        self.deleteCount = deleteCount
+    }
+}
+
 public struct EngineResult: Equatable, Sendable {
     public let token: String
     public let decision: IntentDecision?
     public let action: SwitchingAction
+    public let bufferedReplay: BufferedReplay?
 
-    public init(token: String, decision: IntentDecision?, action: SwitchingAction) {
+    public init(
+        token: String,
+        decision: IntentDecision?,
+        action: SwitchingAction,
+        bufferedReplay: BufferedReplay? = nil
+    ) {
         self.token = token
         self.decision = decision
         self.action = action
+        self.bufferedReplay = bufferedReplay
     }
 }
 
@@ -76,10 +93,12 @@ public final class SmartKeyboardEngine {
 
             token.append(character)
             let decision = classifier.classify(token)
+            let action = action(for: decision)
             return EngineResult(
                 token: token,
                 decision: decision,
-                action: action(for: decision)
+                action: action,
+                bufferedReplay: bufferedReplay(for: action)
             )
 
         case .backspace:
@@ -113,5 +132,12 @@ public final class SmartKeyboardEngine {
             return .none
         }
     }
-}
 
+    private func bufferedReplay(for action: SwitchingAction) -> BufferedReplay? {
+        guard configuration.bufferedMode, action != .none, !token.isEmpty else {
+            return nil
+        }
+
+        return BufferedReplay(text: token, deleteCount: token.count)
+    }
+}
