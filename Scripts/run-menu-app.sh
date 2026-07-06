@@ -9,7 +9,9 @@ BUNDLE_PRODUCTS_DIR="$ROOT_DIR/BuildProducts"
 BUNDLE_DIR="$BUNDLE_PRODUCTS_DIR/${APP_NAME}.app"
 CONTENTS_DIR="$BUNDLE_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
+RESOURCES_DIR="$CONTENTS_DIR/Resources"
 EXECUTABLE="$MACOS_DIR/$APP_NAME"
+APP_ICON="$ROOT_DIR/Assets/AppIcon/SmartKeyboard.icns"
 REBUILD=0
 
 if [[ "${1:-}" == "--rebuild" ]]; then
@@ -21,9 +23,16 @@ cd "$ROOT_DIR"
 if [[ "$REBUILD" == "1" || ! -x "$EXECUTABLE" ]]; then
   swift build --product SmartKeyboardApp
 
+  if [[ ! -f "$APP_ICON" ]]; then
+    echo "Missing app icon: $APP_ICON"
+    echo "Regenerate it with: swift Scripts/generate-app-icon.swift"
+    exit 1
+  fi
+
   rm -rf "$BUNDLE_DIR"
-  mkdir -p "$MACOS_DIR"
+  mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
   cp "$SWIFT_BUILD_DIR/arm64-apple-macosx/debug/SmartKeyboardApp" "$EXECUTABLE"
+  cp "$APP_ICON" "$RESOURCES_DIR/SmartKeyboard.icns"
   chmod +x "$EXECUTABLE"
 
   cat > "$CONTENTS_DIR/Info.plist" <<PLIST
@@ -38,6 +47,8 @@ if [[ "$REBUILD" == "1" || ! -x "$EXECUTABLE" ]]; then
   <string>${APP_NAME}</string>
   <key>CFBundleIdentifier</key>
   <string>${BUNDLE_ID}</string>
+  <key>CFBundleIconFile</key>
+  <string>SmartKeyboard</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
@@ -74,6 +85,6 @@ fi
 open "$BUNDLE_DIR"
 
 echo "Started $BUNDLE_DIR"
-echo "Look for 'SmartKeyboard' in the macOS menu bar."
+echo "Look for the keyboard icon in the macOS menu bar."
 echo "Open the SmartKeyboard menu to check Accessibility and Input Monitoring status."
 echo "Permission picker path: $BUNDLE_DIR"

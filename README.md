@@ -66,9 +66,9 @@ Then add or re-enable `BuildProducts/SmartKeyboard.app` in both Accessibility an
 
 ## Menu Setup / 菜单设置
 
-Open the SmartKeyboard menu from the macOS menu bar. Keep `SmartKeyboard: On`, keep `Buffered Mode: On`, choose your Pinyin source under `Chinese Source`, and choose `ABC` or your preferred English layout under `English Source`.
+Open the SmartKeyboard menu from the keyboard icon in the macOS menu bar. Keep `SmartKeyboard: On`, keep `Buffered Mode: On`, choose your Pinyin source under `Chinese Source`, and choose `ABC` or your preferred English layout under `English Source`.
 
-从 macOS 菜单栏打开 SmartKeyboard 菜单。保持 `SmartKeyboard: On`，保持 `Buffered Mode: On`，在 `Chinese Source` 中选择你的拼音输入法，在 `English Source` 中选择 `ABC` 或你常用的英文键盘布局。
+从 macOS 菜单栏里的键盘图标打开 SmartKeyboard 菜单。保持 `SmartKeyboard: On`，保持 `Buffered Mode: On`，在 `Chinese Source` 中选择你的拼音输入法，在 `English Source` 中选择 `ABC` 或你常用的英文键盘布局。
 
 Buffered Mode is the smoother mode: it removes the already typed letters, switches input sources, and replays the token. You can turn it off for a more conservative passive-switching behavior.
 
