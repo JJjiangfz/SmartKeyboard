@@ -14,8 +14,22 @@ struct IntentClassifierTests {
 
     @Test
     func clearEnglishTokens() {
-        for token in ["hello", "world", "keyboard", "switch", "HTTP"] {
+        for token in ["hello", "world", "keyboard", "switch", "HTTP", "print", "python", "react"] {
             expectIntent(token, .english)
+        }
+    }
+
+    @Test
+    func strongEnglishWordsBeatMechanicalPinyinSegmentation() {
+        for token in ["chinese", "openai", "project", "meeting", "server", "debug"] {
+            expectIntent(token, .english)
+        }
+    }
+
+    @Test
+    func commonPinyinPhrasesStayPinyin() {
+        for token in ["women", "nimen", "tamen", "wenjian", "xiangmu"] {
+            expectIntent(token, .pinyin)
         }
     }
 
@@ -28,7 +42,7 @@ struct IntentClassifierTests {
 
     @Test
     func shortAmbiguousTokensStayUnknown() {
-        for token in ["he", "shi", "ma", "ai", "to"] {
+        for token in ["he", "shi", "ma", "ai", "to", "name"] {
             expectIntent(token, .unknown)
         }
     }
@@ -38,4 +52,3 @@ struct IntentClassifierTests {
         #expect(decision.intent == expected, "\(token) -> \(decision.intent.rawValue), pinyin=\(decision.pinyinScore), english=\(decision.englishScore), reason=\(decision.reason)")
     }
 }
-

@@ -36,6 +36,30 @@ struct SmartKeyboardEngineTests {
     }
 
     @Test
+    func englishWordsThatLookPinyinLikeStillSwitchToEnglish() {
+        let engine = SmartKeyboardEngine()
+        var actions: [SwitchingAction] = []
+
+        for character in "chinese" {
+            actions.append(engine.handle(.character(character)).action)
+        }
+
+        #expect(actions.contains(.switchToEnglish))
+    }
+
+    @Test
+    func technicalEnglishWordsSwitchToEnglish() {
+        let engine = SmartKeyboardEngine()
+        var actions: [SwitchingAction] = []
+
+        for character in "print" {
+            actions.append(engine.handle(.character(character)).action)
+        }
+
+        #expect(actions.contains(.switchToEnglish))
+    }
+
+    @Test
     func backspaceUpdatesTokenWithoutSwitching() {
         let engine = SmartKeyboardEngine()
 

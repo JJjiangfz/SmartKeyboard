@@ -17,6 +17,18 @@ private let samples: [Sample] = [
     Sample(token: "world", expected: .english),
     Sample(token: "keyboard", expected: .english),
     Sample(token: "switch", expected: .english),
+    Sample(token: "print", expected: .english),
+    Sample(token: "chinese", expected: .english),
+    Sample(token: "python", expected: .english),
+    Sample(token: "react", expected: .english),
+    Sample(token: "openai", expected: .english),
+    Sample(token: "project", expected: .english),
+    Sample(token: "meeting", expected: .english),
+    Sample(token: "server", expected: .english),
+    Sample(token: "debug", expected: .english),
+    Sample(token: "women", expected: .pinyin),
+    Sample(token: "nimen", expected: .pinyin),
+    Sample(token: "tamen", expected: .pinyin),
     Sample(token: "inputSourceID", expected: .english),
     Sample(token: "name@example.com", expected: .english),
     Sample(token: "https://github.com", expected: .english),
@@ -24,6 +36,7 @@ private let samples: [Sample] = [
     Sample(token: "shi", expected: .unknown),
     Sample(token: "ma", expected: .unknown),
     Sample(token: "ai", expected: .unknown),
+    Sample(token: "name", expected: .unknown),
     Sample(token: "to", expected: .unknown)
 ]
 

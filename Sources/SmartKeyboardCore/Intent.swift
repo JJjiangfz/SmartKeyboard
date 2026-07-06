@@ -35,15 +35,17 @@ public struct ClassificationConfig: Equatable, Sendable {
     public var minimumConfidence: Double
     public var minimumMargin: Double
     public var minimumTokenLength: Int
+    public var lexicalTieMargin: Double
 
     public init(
         minimumConfidence: Double = 0.78,
         minimumMargin: Double = 0.16,
-        minimumTokenLength: Int = 2
+        minimumTokenLength: Int = 2,
+        lexicalTieMargin: Double = 0.08
     ) {
         self.minimumConfidence = minimumConfidence
         self.minimumMargin = minimumMargin
         self.minimumTokenLength = minimumTokenLength
+        self.lexicalTieMargin = lexicalTieMargin
     }
 }
-

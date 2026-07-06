@@ -57,6 +57,32 @@ public final class ConservativeIntentClassifier: IntentClassifying {
             )
         }
 
+        if pinyin.evidence == .clearPinyinWord,
+           pinyin.value >= config.minimumConfidence,
+           pinyin.value + config.lexicalTieMargin >= english.value {
+            return IntentDecision(
+                token: token,
+                intent: .pinyin,
+                confidence: pinyin.value,
+                pinyinScore: pinyin.value,
+                englishScore: english.value,
+                reason: pinyin.reason
+            )
+        }
+
+        if english.evidence.isStrongEnglish,
+           english.value >= config.minimumConfidence,
+           english.value + config.lexicalTieMargin >= pinyin.value {
+            return IntentDecision(
+                token: token,
+                intent: .english,
+                confidence: english.value,
+                pinyinScore: pinyin.value,
+                englishScore: english.value,
+                reason: english.reason
+            )
+        }
+
         return IntentDecision(
             token: token,
             intent: .unknown,
@@ -72,6 +98,20 @@ private struct ModelScore {
     let value: Double
     let coverage: Double
     let reason: String
+    let evidence: ModelEvidence
+}
+
+private enum ModelEvidence {
+    case clearPinyinWord
+    case pinyinShape
+    case strongEnglish
+    case englishShape
+    case weak
+    case none
+
+    var isStrongEnglish: Bool {
+        self == .strongEnglish
+    }
 }
 
 private struct PinyinModel {
@@ -82,18 +122,19 @@ private struct PinyinModel {
         "zhineng", "ceshi", "kaifa", "xiangmu", "wenjian", "xitong",
         "yonghu", "qingwen", "haode", "duide", "bucuo", "jixu",
         "keyi", "meiyou", "buyao", "xihuan", "suoyi", "yinwei",
-        "ruguo", "danshi", "zhege", "nage", "dianji"
+        "ruguo", "danshi", "zhege", "nage", "dianji", "women",
+        "nimen", "tamen", "zamen"
     ]
 
     func score(_ rawToken: String) -> ModelScore {
         let token = rawToken.lowercased()
 
         guard token.allSatisfy({ $0.isASCII && $0.isLetter }) else {
-            return ModelScore(value: 0, coverage: 0, reason: "not plain latin")
+            return ModelScore(value: 0, coverage: 0, reason: "not plain latin", evidence: .none)
         }
 
         if clearWords.contains(token) {
-            return ModelScore(value: 0.94, coverage: 1, reason: "known clear pinyin word")
+            return ModelScore(value: 0.94, coverage: 1, reason: "known clear pinyin word", evidence: .clearPinyinWord)
         }
 
         let segmentation = segment(token)
@@ -126,7 +167,7 @@ private struct PinyinModel {
 
         let clamped = min(value, 0.96)
         let reason = segmentation.isComplete ? "complete pinyin segmentation" : "partial pinyin coverage"
-        return ModelScore(value: clamped, coverage: coverage, reason: reason)
+        return ModelScore(value: clamped, coverage: coverage, reason: reason, evidence: .pinyinShape)
     }
 
     private func segment(_ token: String) -> (matchedCharacters: Int, syllableCount: Int, isComplete: Bool) {
@@ -165,12 +206,18 @@ private struct EnglishModel {
     private let commonWords: Set<String> = [
         "about", "after", "again", "also", "and", "app", "apple", "are", "back",
         "build", "button", "case", "change", "chinese", "class", "click", "code",
-        "config", "control", "data", "default", "else", "english", "false", "file",
-        "for", "from", "func", "github", "hello", "import", "input", "keyboard",
-        "let", "main", "menu", "name", "path", "public", "read", "return", "source",
-        "string", "struct", "switch", "test", "thanks", "the", "this", "today",
-        "true", "update", "user", "value", "var", "while", "window", "with", "world",
-        "write"
+        "close", "coffee", "command", "config", "control", "copy", "data", "debug",
+        "default", "design", "dictionary", "docker", "else", "email", "english",
+        "false", "file", "for", "from", "func", "function", "github", "google",
+        "hello", "import", "input", "java", "javascript", "json", "keyboard",
+        "kotlin", "linux", "main", "manager", "meeting", "menu", "message",
+        "microsoft", "model", "name", "object", "offline", "online", "open",
+        "openai", "option", "page", "paste", "path", "print", "private",
+        "product", "project", "public", "python", "react", "read", "return",
+        "review", "rust", "schedule", "screen", "server", "source", "string",
+        "struct", "swift", "switch", "terminal", "test", "thanks", "the",
+        "this", "today", "tomorrow", "true", "typescript", "update", "user",
+        "value", "video", "view", "while", "window", "with", "world", "write"
     ]
 
     private let englishFragments = [
@@ -178,40 +225,48 @@ private struct EnglishModel {
         "wh", "wr", "th", "qu", "ed", "ly", "er"
     ]
 
+    private let ambiguousPinyinEnglishWords: Set<String> = [
+        "name"
+    ]
+
     func score(_ rawToken: String, pinyinCoverage: Double) -> ModelScore {
         let token = rawToken.trimmingCharacters(in: .whitespacesAndNewlines)
         let lowered = token.lowercased()
 
         if looksLikeEmail(token) {
-            return ModelScore(value: 0.96, coverage: 1, reason: "email-like token")
+            return ModelScore(value: 0.96, coverage: 1, reason: "email-like token", evidence: .strongEnglish)
         }
 
         if looksLikeURL(token) {
-            return ModelScore(value: 0.97, coverage: 1, reason: "url-like token")
+            return ModelScore(value: 0.97, coverage: 1, reason: "url-like token", evidence: .strongEnglish)
         }
 
         if looksLikePath(token) {
-            return ModelScore(value: 0.91, coverage: 1, reason: "path-like token")
+            return ModelScore(value: 0.91, coverage: 1, reason: "path-like token", evidence: .strongEnglish)
         }
 
         if looksLikeCodeIdentifier(token) {
-            return ModelScore(value: 0.90, coverage: 1, reason: "code identifier")
+            return ModelScore(value: 0.90, coverage: 1, reason: "code identifier", evidence: .strongEnglish)
         }
 
         guard lowered.allSatisfy({ $0.isASCII && $0.isLetter }) else {
-            return ModelScore(value: 0, coverage: 0, reason: "not plain latin")
+            return ModelScore(value: 0, coverage: 0, reason: "not plain latin", evidence: .none)
         }
 
         if isAcronym(token) {
-            return ModelScore(value: 0.92, coverage: 1, reason: "uppercase acronym")
+            return ModelScore(value: 0.92, coverage: 1, reason: "uppercase acronym", evidence: .strongEnglish)
+        }
+
+        if ambiguousPinyinEnglishWords.contains(lowered) {
+            return ModelScore(value: 0.88, coverage: 1, reason: "ambiguous pinyin/english word", evidence: .englishShape)
         }
 
         if commonWords.contains(lowered), lowered.count >= 3 {
-            return ModelScore(value: 0.88, coverage: 1, reason: "common english word")
+            return ModelScore(value: 0.92, coverage: 1, reason: "common english word", evidence: .strongEnglish)
         }
 
         if lowered.count <= 2 {
-            return ModelScore(value: 0.22, coverage: 0.2, reason: "short ambiguous english")
+            return ModelScore(value: 0.22, coverage: 0.2, reason: "short ambiguous english", evidence: .weak)
         }
 
         var value = 0.18
@@ -229,11 +284,21 @@ private struct EnglishModel {
             value += 0.12
         }
 
+        if hasEnglishStartingCluster(lowered) {
+            value += 0.22
+        }
+
+        if hasEnglishEndingCluster(lowered) {
+            value += 0.22
+        }
+
         if lowered.count >= 7 && pinyinCoverage < 0.7 {
             value += 0.08
         }
 
-        return ModelScore(value: min(value, 0.86), coverage: value, reason: "english shape heuristics")
+        let clamped = min(value, 0.88)
+        let evidence: ModelEvidence = clamped >= 0.78 ? .strongEnglish : .englishShape
+        return ModelScore(value: clamped, coverage: value, reason: "english shape heuristics", evidence: evidence)
     }
 
     private func looksLikeURL(_ token: String) -> Bool {
@@ -289,6 +354,25 @@ private struct EnglishModel {
 
         return false
     }
+
+    private func hasEnglishStartingCluster(_ lowered: String) -> Bool {
+        englishStartingClusters.contains { lowered.hasPrefix($0) }
+    }
+
+    private func hasEnglishEndingCluster(_ lowered: String) -> Bool {
+        englishEndingClusters.contains { lowered.hasSuffix($0) }
+    }
+
+    private let englishStartingClusters = [
+        "bl", "br", "cl", "cr", "dr", "fl", "fr", "gl", "gr", "pl",
+        "pr", "sk", "sl", "sm", "sn", "sp", "st", "sw", "tr", "tw",
+        "wh", "wr"
+    ]
+
+    private let englishEndingClusters = [
+        "ct", "ft", "ld", "lk", "lm", "lp", "lt", "mp", "nd", "nk",
+        "nt", "pt", "rd", "rk", "rn", "rp", "rt", "sk", "sp", "st"
+    ]
 }
 
 private enum PinyinSyllables {

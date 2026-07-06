@@ -33,15 +33,23 @@ private func testClassifier() throws {
         try expectIntent(token, .pinyin, classifier: classifier)
     }
 
-    for token in ["hello", "world", "keyboard", "switch", "HTTP"] {
+    for token in ["hello", "world", "keyboard", "switch", "HTTP", "print", "python", "react"] {
         try expectIntent(token, .english, classifier: classifier)
+    }
+
+    for token in ["chinese", "openai", "project", "meeting", "server", "debug"] {
+        try expectIntent(token, .english, classifier: classifier)
+    }
+
+    for token in ["women", "nimen", "tamen", "wenjian", "xiangmu"] {
+        try expectIntent(token, .pinyin, classifier: classifier)
     }
 
     for token in ["inputSourceID", "user_name", "name@example.com", "https://github.com", "/Users/test/file"] {
         try expectIntent(token, .english, classifier: classifier)
     }
 
-    for token in ["he", "shi", "ma", "ai", "to"] {
+    for token in ["he", "shi", "ma", "ai", "to", "name"] {
         try expectIntent(token, .unknown, classifier: classifier)
     }
 }
@@ -63,6 +71,23 @@ private func testEngine() throws {
         englishActions.append(pinyinEngine.handle(.character(character)).action)
     }
     try expect(englishActions.contains(.switchToEnglish), "expected english switch")
+
+    let pinyinLikeEnglishEngine = SmartKeyboardEngine()
+    var pinyinLikeEnglishActions: [SwitchingAction] = []
+    for character in "chinese" {
+        pinyinLikeEnglishActions.append(pinyinLikeEnglishEngine.handle(.character(character)).action)
+    }
+    try expect(
+        pinyinLikeEnglishActions.contains(.switchToEnglish),
+        "expected chinese to switch to english despite pinyin-like shape"
+    )
+
+    let technicalEnglishEngine = SmartKeyboardEngine()
+    var technicalEnglishActions: [SwitchingAction] = []
+    for character in "print" {
+        technicalEnglishActions.append(technicalEnglishEngine.handle(.character(character)).action)
+    }
+    try expect(technicalEnglishActions.contains(.switchToEnglish), "expected print to switch to english")
 
     let backspaceEngine = SmartKeyboardEngine()
     for character in "niha" {
