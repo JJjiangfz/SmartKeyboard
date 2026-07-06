@@ -32,12 +32,29 @@ This builds a release app at `/Applications/SmartKeyboard.app` and opens it. Aft
 
 这会生成 release 版 `/Applications/SmartKeyboard.app` 并启动它。以后就可以像普通 Mac app 一样启动：在“应用程序”、Launchpad 或 Spotlight 中点击 SmartKeyboard。启动后它会常驻菜单栏，请在控制中心 / 电池 / 时钟附近找键盘图标。
 
+The installer creates or reuses a local signing identity named `SmartKeyboard Local Code Signing` so macOS permissions stay attached to the installed app across rebuilds.
+
+安装脚本会创建或复用名为 `SmartKeyboard Local Code Signing` 的本地签名身份，让 macOS 权限在后续重新构建安装后仍然绑定到同一个 app。
+
 Grant macOS permissions to `/Applications/SmartKeyboard.app` after installation:
 
 安装后请给 `/Applications/SmartKeyboard.app` 授权：
 
 - Accessibility
 - Input Monitoring
+
+If the SmartKeyboard menu says permissions are missing while System Settings already shows them enabled, reset the stale macOS permission records and add the app again:
+
+如果 SmartKeyboard 菜单里显示权限未开启，但系统设置里已经显示开启，这是 macOS 权限记录仍指向旧构建/旧签名。请重置旧记录后重新添加 app：
+
+```sh
+Scripts/reset-permissions.sh
+Scripts/install-app.sh
+```
+
+Then remove and re-add `/Applications/SmartKeyboard.app` in both Accessibility and Input Monitoring.
+
+然后在 Accessibility 和 Input Monitoring 两处删除旧的 SmartKeyboard，再重新添加 `/Applications/SmartKeyboard.app`。
 
 To start SmartKeyboard automatically after login, add it in System Settings -> General -> Login Items.
 
@@ -63,9 +80,9 @@ Scripts/run-menu-app.sh --rebuild
 
 ## Permission Notes / 权限说明
 
-The local app is ad-hoc signed. After reinstalling or rebuilding, macOS may still show SmartKeyboard as enabled in System Settings, while the new executable no longer matches the old permission record. If the menu says permissions are missing, reset and grant again:
+The installed app is signed with a persistent local identity by default. If you disable that identity with `SMARTKEYBOARD_DISABLE_LOCAL_SIGNING=1`, the app falls back to ad-hoc signing; after reinstalling or rebuilding, macOS may still show SmartKeyboard as enabled in System Settings, while the new executable no longer matches the old permission record. If the menu says permissions are missing, reset and grant again:
 
-本地 app 使用 ad-hoc 签名。重新安装或 `--rebuild` 后，macOS 系统设置里可能仍然显示 SmartKeyboard 已开启权限，但新的可执行文件已经不匹配旧权限记录。如果菜单栏里显示权限缺失，请重置后重新授权：
+安装版 app 默认使用稳定的本地签名身份。如果用 `SMARTKEYBOARD_DISABLE_LOCAL_SIGNING=1` 禁用它，app 会退回 ad-hoc 签名；重新安装或 `--rebuild` 后，macOS 系统设置里可能仍然显示 SmartKeyboard 已开启权限，但新的可执行文件已经不匹配旧权限记录。如果菜单栏里显示权限缺失，请重置后重新授权：
 
 ```sh
 Scripts/reset-permissions.sh
@@ -74,6 +91,10 @@ Scripts/reset-permissions.sh
 Then run `Scripts/install-app.sh` and add or re-enable `/Applications/SmartKeyboard.app` in both Accessibility and Input Monitoring. For development-only runs, use `Scripts/run-menu-app.sh --rebuild` and grant `BuildProducts/SmartKeyboard.app` instead.
 
 然后运行 `Scripts/install-app.sh`，并在 Accessibility 和 Input Monitoring 两处重新添加或重新开启 `/Applications/SmartKeyboard.app`。如果只是开发调试，则运行 `Scripts/run-menu-app.sh --rebuild`，并改为授权 `BuildProducts/SmartKeyboard.app`。
+
+The installer handles the stable local identity automatically. Advanced users can override it by setting `SMARTKEYBOARD_CODESIGN_IDENTITY` before running the installer.
+
+安装脚本会自动处理稳定的本地签名身份。高级用户也可以在运行安装脚本前设置 `SMARTKEYBOARD_CODESIGN_IDENTITY` 来覆盖默认签名身份。
 
 ## Menu Setup / 菜单设置
 

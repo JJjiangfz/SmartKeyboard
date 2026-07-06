@@ -7,5 +7,6 @@ tccutil reset Accessibility "$BUNDLE_ID" >/dev/null 2>&1 || true
 tccutil reset ListenEvent "$BUNDLE_ID" >/dev/null 2>&1 || true
 
 echo "Reset macOS privacy permissions for $BUNDLE_ID."
-echo "Now run: Scripts/run-menu-app.sh --rebuild"
-echo "Then add BuildProducts/SmartKeyboard.app or /Applications/SmartKeyboard.app in both Accessibility and Input Monitoring."
+echo "Now run: Scripts/install-app.sh"
+echo "Then add /Applications/SmartKeyboard.app in both Accessibility and Input Monitoring."
+echo "For development-only runs, use Scripts/run-menu-app.sh --rebuild and grant BuildProducts/SmartKeyboard.app instead."

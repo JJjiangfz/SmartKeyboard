@@ -42,6 +42,10 @@ if [[ ! -d "$INSTALL_DIR" ]]; then
   exit 1
 fi
 
+if [[ "${SMARTKEYBOARD_DISABLE_LOCAL_SIGNING:-0}" != "1" ]]; then
+  "$ROOT_DIR/Scripts/ensure-local-signing-identity.sh"
+fi
+
 "$ROOT_DIR/Scripts/build-app-bundle.sh" --configuration release --output "$SOURCE_APP"
 
 DEST_APP="$INSTALL_DIR/${APP_NAME}.app"

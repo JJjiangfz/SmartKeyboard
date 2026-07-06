@@ -7,6 +7,7 @@ BUNDLE_ID="com.jjjiangfz.SmartKeyboard"
 CONFIGURATION="release"
 BUNDLE_DIR="$ROOT_DIR/BuildProducts/${APP_NAME}.app"
 APP_ICON="$ROOT_DIR/Assets/AppIcon/SmartKeyboard.icns"
+DEFAULT_SIGNING_IDENTITY="SmartKeyboard Local Code Signing"
 
 usage() {
   cat <<USAGE
@@ -116,7 +117,21 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
 PLIST
 
 if command -v codesign >/dev/null 2>&1; then
-  codesign --force --deep --sign - "$BUNDLE_DIR" >/dev/null 2>&1 || true
+  SIGNING_IDENTITY="${SMARTKEYBOARD_CODESIGN_IDENTITY:-}"
+  if [[ -z "$SIGNING_IDENTITY" ]] && command -v security >/dev/null 2>&1; then
+    SIGNING_IDENTITY="$(
+      security find-identity -v -p codesigning 2>/dev/null \
+        | awk -v name="$DEFAULT_SIGNING_IDENTITY" 'index($0, "\"" name "\"") { print name; exit }'
+    )"
+  fi
+
+  if [[ -n "$SIGNING_IDENTITY" ]]; then
+    codesign --force --deep --sign "$SIGNING_IDENTITY" "$BUNDLE_DIR"
+    echo "Signed $BUNDLE_DIR with '$SIGNING_IDENTITY'"
+  else
+    codesign --force --deep --sign - "$BUNDLE_DIR" >/dev/null 2>&1 || true
+    echo "Signed $BUNDLE_DIR with ad-hoc identity"
+  fi
 fi
 
 echo "Built $BUNDLE_DIR"
