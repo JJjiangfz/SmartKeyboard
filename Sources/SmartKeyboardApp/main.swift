@@ -34,6 +34,7 @@ private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
         configureStatusItem()
         rebuildMenu()
         startPassiveMonitoring()
+        printStartupSummary()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -41,7 +42,8 @@ private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func configureStatusItem() {
-        statusItem.button?.title = "SK"
+        statusItem.isVisible = true
+        statusItem.button?.title = "SmartKeyboard"
         statusItem.button?.toolTip = "SmartKeyboard"
     }
 
@@ -90,7 +92,7 @@ private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(quitItem)
 
         statusItem.menu = menu
-        statusItem.button?.title = preferences.enabled ? "SK" : "SK Off"
+        statusItem.button?.title = preferences.enabled ? "SmartKeyboard" : "SmartKeyboard Off"
     }
 
     private func sourceMenu(title: String, selectedID: String?, mode: SourceMode) -> NSMenuItem {
@@ -261,6 +263,16 @@ private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func quit() {
         NSApplication.shared.terminate(nil)
+    }
+
+    private func printStartupSummary() {
+        let pid = ProcessInfo.processInfo.processIdentifier
+        let sourceCount = inputSources.listInputSources().count
+        print("SmartKeyboardApp started. PID: \(pid)")
+        print("Look for 'SmartKeyboard' in the macOS menu bar near Control Center / battery / clock.")
+        print("Selectable input sources found: \(sourceCount)")
+        print("Preferences file: \(preferencesStore.fileURL.path)")
+        print("Press Ctrl+C in this terminal, or use the menu item, to stop it.")
     }
 }
 
