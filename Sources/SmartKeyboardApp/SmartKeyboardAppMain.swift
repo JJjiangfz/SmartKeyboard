@@ -20,7 +20,8 @@ enum SmartKeyboardAppMain {
 
 @MainActor
 private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
-    private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+    private let statusIcon = SmartKeyboardAppDelegate.makeStatusIcon()
     private let inputSources = SystemInputSourceManager()
     private let preferencesStore = SmartKeyboardPreferencesStore()
     private let diagnosticsStore = DiagnosticsStore()
@@ -50,7 +51,9 @@ private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
 
     private func configureStatusItem() {
         statusItem.isVisible = true
-        statusItem.button?.title = "SmartKeyboard"
+        statusItem.button?.image = statusIcon
+        statusItem.button?.imagePosition = .imageOnly
+        statusItem.button?.title = ""
         statusItem.button?.toolTip = "SmartKeyboard"
     }
 
@@ -108,7 +111,19 @@ private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(quitItem)
 
         statusItem.menu = menu
-        statusItem.button?.title = preferences.enabled ? "SmartKeyboard" : "SmartKeyboard Off"
+        statusItem.button?.title = ""
+        statusItem.button?.toolTip = preferences.enabled ? "SmartKeyboard" : "SmartKeyboard Off"
+        statusItem.button?.alphaValue = preferences.enabled ? 1.0 : 0.45
+    }
+
+    private static func makeStatusIcon() -> NSImage {
+        guard let image = NSImage(systemSymbolName: "keyboard", accessibilityDescription: "SmartKeyboard") else {
+            return NSImage()
+        }
+
+        image.isTemplate = true
+        image.size = NSSize(width: 18, height: 18)
+        return image
     }
 
     private func sourceMenu(title: String, selectedID: String?, mode: SourceMode) -> NSMenuItem {
@@ -339,7 +354,7 @@ private final class SmartKeyboardAppDelegate: NSObject, NSApplicationDelegate {
         let pid = ProcessInfo.processInfo.processIdentifier
         let sourceCount = inputSources.listInputSources().count
         print("SmartKeyboardApp started. PID: \(pid)")
-        print("Look for 'SmartKeyboard' in the macOS menu bar near Control Center / battery / clock.")
+        print("Look for the keyboard icon in the macOS menu bar near Control Center / battery / clock.")
         print("Selectable input sources found: \(sourceCount)")
         print("Preferences file: \(preferencesStore.fileURL.path)")
         print("Diagnostics file: \(diagnosticsStore.fileURL.path)")
