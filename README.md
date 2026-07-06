@@ -38,12 +38,19 @@ chmod +x Scripts/run-menu-app.sh
 Scripts/run-menu-app.sh
 ```
 
-The wrapper creates `BuildProducts/SmartKeyboard.app`, launches it with `open`, and stops any previous development instance first. Use that visible path when adding SmartKeyboard to macOS Privacy & Security permissions.
+The wrapper creates `BuildProducts/SmartKeyboard.app`, launches it with `open`, and stops any previous development instance first. It reuses the existing app by default so macOS privacy permissions do not get invalidated on every restart. Use `Scripts/run-menu-app.sh --rebuild` only after code changes.
 
 The menu-bar app needs macOS input-monitoring/accessibility permissions to observe global key events reliably.
 Grant the visible `BuildProducts/SmartKeyboard.app` in both Privacy & Security pages:
 
 - Accessibility
 - Input Monitoring
+
+If macOS shows SmartKeyboard as enabled but the app still says permission is missing, reset stale TCC entries and grant the freshly rebuilt app again:
+
+```sh
+Scripts/reset-permissions.sh
+Scripts/run-menu-app.sh --rebuild
+```
 
 This machine's Command Line Tools installation does not include an importable XCTest module, so the repository uses Swift Testing for the lightweight test target and also carries a dependency-free self-test executable. `SmartKeyboardSelfTest` prints an explicit pass/fail result and covers the file-system preference round trip.

@@ -10,17 +10,23 @@ BUNDLE_DIR="$BUNDLE_PRODUCTS_DIR/${APP_NAME}.app"
 CONTENTS_DIR="$BUNDLE_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 EXECUTABLE="$MACOS_DIR/$APP_NAME"
+REBUILD=0
+
+if [[ "${1:-}" == "--rebuild" ]]; then
+  REBUILD=1
+fi
 
 cd "$ROOT_DIR"
 
-swift build --product SmartKeyboardApp
+if [[ "$REBUILD" == "1" || ! -x "$EXECUTABLE" ]]; then
+  swift build --product SmartKeyboardApp
 
-rm -rf "$BUNDLE_DIR"
-mkdir -p "$MACOS_DIR"
-cp "$SWIFT_BUILD_DIR/arm64-apple-macosx/debug/SmartKeyboardApp" "$EXECUTABLE"
-chmod +x "$EXECUTABLE"
+  rm -rf "$BUNDLE_DIR"
+  mkdir -p "$MACOS_DIR"
+  cp "$SWIFT_BUILD_DIR/arm64-apple-macosx/debug/SmartKeyboardApp" "$EXECUTABLE"
+  chmod +x "$EXECUTABLE"
 
-cat > "$CONTENTS_DIR/Info.plist" <<PLIST
+  cat > "$CONTENTS_DIR/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -54,12 +60,16 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
 </plist>
 PLIST
 
+  if command -v codesign >/dev/null 2>&1; then
+    codesign --force --deep --sign - "$BUNDLE_DIR" >/dev/null 2>&1 || true
+  fi
+else
+  echo "Reusing existing $BUNDLE_DIR"
+  echo "Run '$0 --rebuild' only after code changes; rebuilding may require granting permissions again."
+fi
+
 /usr/bin/pkill -x SmartKeyboardApp 2>/dev/null || true
 /usr/bin/pkill -x SmartKeyboard 2>/dev/null || true
-
-if command -v codesign >/dev/null 2>&1; then
-  codesign --force --deep --sign - "$BUNDLE_DIR" >/dev/null 2>&1 || true
-fi
 
 open "$BUNDLE_DIR"
 
